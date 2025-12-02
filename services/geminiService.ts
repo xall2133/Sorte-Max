@@ -2,10 +2,21 @@
 import { GoogleGenAI } from "@google/genai";
 import { GameType, UserPreferences } from "../types";
 
-// Safely get API key or empty string to prevent crashes in non-node environments
+// Safely get API key to prevent crashes in browser environments where 'process' is undefined
 const getApiKey = () => {
   try {
-    return process.env.API_KEY || '';
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        // @ts-ignore
+        return process.env.API_KEY;
+    }
+    // Check for Vite env var
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+        // @ts-ignore
+        return import.meta.env.VITE_API_KEY;
+    }
+    return '';
   } catch (e) {
     return '';
   }
