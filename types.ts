@@ -4,14 +4,19 @@ export enum GameType {
   MEGA_VIRADA = 'Mega da Virada',
   LOTOFACIL = 'Lotofácil',
   QUINA = 'Quina',
-  DUPLA_SENA = 'Dupla-Sena'
+  LOTOMANIA = 'Lotomania',
+  DUPLA_SENA = 'Dupla Sena',
+  TIMEMANIA = 'Timemania',
+  DIA_DE_SORTE = 'Dia de Sorte',
+  MILIONARIA = '+Milionária'
 }
 
 export enum StrategyType {
   SMART = 'smart',      // IA decide
   HOT = 'hot',          // Números que mais saem
   COLD = 'cold',        // Números atrasados
-  BALANCED = 'balanced' // Equilíbrio par/impar
+  BALANCED = 'balanced', // Equilíbrio par/impar
+  PERSONAL_MYSTIC = 'mystic' // Baseado em dados pessoais
 }
 
 export interface GameConfig {
@@ -20,12 +25,20 @@ export interface GameConfig {
   min: number;
   max: number;
   defaultCount: number;
+  maxCount: number; // Limite máximo permitido para apostas
   color: string;
+  gradient: string;
+  hasExtras?: boolean; // Se tem trevos ou mês
+  extraName?: string;
+  extraMin?: number;
+  extraMax?: number;
+  extraCount?: number;
 }
 
 export interface GeneratedSet {
   id: string;
   numbers: number[];
+  extras?: number[]; // Para trevos ou mês
   explanation: string;
   strategy: StrategyType;
   timestamp: number;
@@ -34,11 +47,11 @@ export interface GeneratedSet {
 
 export interface UserPreferences {
   birthDate?: string;
-  luckyNumber?: number;
+  luckyNumber?: string; // Alterado para string para permitir input mais livre no form, convertido depois
   name?: string;
   mysticWord?: string;
   strategy?: StrategyType;
-  numberCount?: number; // 6 to 10 for Mega
+  numberCount?: number; 
   excludedNumbers?: number[];
   fixedNumbers?: number[];
 }
@@ -50,12 +63,12 @@ export interface User {
   phone: string;
   password?: string;
   credits: number;
-  premiumExpiresAt?: number; // Timestamp for when premium ends
+  premiumExpiresAt?: number; 
   isAdmin: boolean;
   createdAt: string;
-  referralCode: string; // Código único do usuário
-  referredBy?: string; // ID de quem indicou
-  referralCount: number; // Quantas pessoas indicou
+  referralCode: string; 
+  referredBy?: string; 
+  referralCount: number; 
 }
 
 export interface Transaction {
@@ -93,7 +106,7 @@ export enum AppScreen {
 export interface PaymentPlan {
   id: string;
   title: string;
-  credits: number; // -1 for Premium (Unlimited)
+  credits: number;
   price: number;
   popular?: boolean;
 }
@@ -105,9 +118,9 @@ export interface Bolao {
   totalShares: number;
   soldShares: number;
   pricePerShare: number;
-  numbersCount: number; // Quantos números jogados (ex: 15 na mega)
+  numbersCount: number; 
   potEstimate: string;
   endsAt: number;
   creatorName: string;
-  isOfficial: boolean; // Se foi criado pelo sistema/admin
+  isOfficial: boolean; 
 }
