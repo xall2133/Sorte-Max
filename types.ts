@@ -111,16 +111,44 @@ export interface PaymentPlan {
   popular?: boolean;
 }
 
+// --- CLUBE DO BOLÃO TYPES ---
+
 export interface Bolao {
   id: string;
+  creator_id: string;
   title: string;
   game: GameType;
-  totalShares: number;
-  soldShares: number;
-  pricePerShare: number;
-  numbersCount: number; 
-  potEstimate: string;
-  endsAt: number;
-  creatorName: string;
-  isOfficial: boolean; 
+  total_shares: number;
+  price_per_share: number;
+  description?: string;
+  status: 'open' | 'closed' | 'finished';
+  generated_numbers?: string; // JSON string "1,2,3..."
+  created_at: string;
+  terms_accepted: boolean;
+  
+  // Virtual fields (calculados no frontend ou via join)
+  shares_sold?: number;
+  is_creator?: boolean;
+  creator_name?: string;
+  creator_phone?: string;
+}
+
+export interface BolaoParticipant {
+  id: string;
+  bolao_id: string;
+  user_id?: string;
+  name: string;
+  shares_count: number;
+  is_paid: boolean;
+  has_indicated_payment?: boolean; // Novo campo
+  created_at: string;
+}
+
+export interface BolaoChatMessage {
+  id: string;
+  bolao_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  user_name?: string; // Join
 }

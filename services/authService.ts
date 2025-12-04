@@ -161,6 +161,17 @@ export const AuthService = {
         return null;
     }
   },
+  
+  // Buscar usuário por email (para adicionar no bolão)
+  getUserByEmail: async (email: string): Promise<(User & {isPremium: boolean}) | null> => {
+    const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+    if (error || !data) return null;
+    
+    const user = mapUserFromDB(data);
+    const isPremium = !!(user.premiumExpiresAt && user.premiumExpiresAt > Date.now());
+    
+    return { ...user, isPremium };
+  },
 
   // ADMIN: Obter todos os usuários
   getAllUsers: async (): Promise<User[]> => {
