@@ -58,20 +58,32 @@ function App() {
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlan | null>(null);
   const [currentResult, setCurrentResult] = useState<GeneratedSet | null>(null);
   
-  const [prefs, setPrefs] = useState<UserPreferences>({
-      strategy: StrategyType.SMART,
-      numberCount: 6,
-      excludedNumbers: [],
-      fixedNumbers: [],
-      birthDate: '',
-      luckyNumber: '',
-      name: '',
-      mysticWord: ''
+  // Inicializa preferências do localStorage se existirem
+  const [prefs, setPrefs] = useState<UserPreferences>(() => {
+      try {
+          const saved = localStorage.getItem('sortemax_prefs');
+          if (saved) return JSON.parse(saved);
+      } catch (e) {}
+      return {
+          strategy: StrategyType.SMART,
+          numberCount: 6,
+          excludedNumbers: [],
+          fixedNumbers: [],
+          birthDate: '',
+          luckyNumber: '',
+          name: '',
+          mysticWord: ''
+      };
   });
 
-  // Sincronizar nome do usuário com preferências do gerador
+  // Salvar preferências (procedimentos) sempre que mudarem
   useEffect(() => {
-    if (currentUser && currentUser.name) {
+      localStorage.setItem('sortemax_prefs', JSON.stringify(prefs));
+  }, [prefs]);
+
+  // Sincronizar nome do usuário com preferências do gerador (prioridade para o nome da conta)
+  useEffect(() => {
+    if (currentUser && currentUser.name && prefs.name !== currentUser.name) {
       setPrefs(prev => ({ ...prev, name: currentUser.name }));
     }
   }, [currentUser]);
@@ -110,16 +122,7 @@ function App() {
     AuthService.logout();
     setCurrentUser(null);
     setCredits(0);
-    setPrefs({
-        strategy: StrategyType.SMART,
-        numberCount: 6,
-        excludedNumbers: [],
-        fixedNumbers: [],
-        birthDate: '',
-        luckyNumber: '',
-        name: '',
-        mysticWord: ''
-    });
+    // Limpa preferências ao sair se desejar, ou mantém (aqui mantemos para conveniência do usuário na volta)
     setShowLogoutConfirm(false);
     setScreen(AppScreen.AUTH);
   };
@@ -205,57 +208,63 @@ function App() {
           if (u) { setCredits(u.credits); setCurrentUser(u); }
       }} />}
       
-      {/* Modal Interno de Logout (Substitui o confirm nativo) */}
+      {/* Modal de Logout Robusto */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-white/10 p-6 rounded-[2rem] w-full max-w-xs shadow-2xl space-y-6 text-center">
-             <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-xs shadow-2xl space-y-8 text-center">
+             <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto ring-4 ring-red-500/10">
                 <LogOut className="text-red-500" size={32} />
              </div>
              <div>
-                <h3 className="text-lg font-bold">Encerrar Sessão?</h3>
-                <p className="text-slate-400 text-sm mt-1">Sua conta e créditos serão preservados.</p>
+                <h3 className="text-xl font-black brand-font">Sair do App?</h3>
+                <p className="text-slate-400 text-sm mt-2">Você precisará digitar seu nome novamente para acessar.</p>
              </div>
-             <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setShowLogoutConfirm(false)} className="py-3 bg-slate-800 rounded-xl font-bold text-sm">Voltar</button>
-                <button onClick={handleLogout} className="py-3 bg-red-600 rounded-xl font-bold text-sm shadow-lg shadow-red-900/30">Sair</button>
+             <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setShowLogoutConfirm(false)} className="py-4 bg-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform">Voltar</button>
+                <button onClick={handleLogout} className="py-4 bg-red-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-900/50 active:scale-95 transition-transform">Sair</button>
              </div>
           </div>
         </div>
       )}
 
-      {/* Header Compacto */}
-      <header className="sticky top-0 z-40 bg-slate-900/60 backdrop-blur-lg border-b border-white/5 px-4 py-3 flex justify-between items-center h-16">
+      {/* Header Fixo */}
+      <header className="sticky top-0 z-40 bg-slate-900/60 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex justify-between items-center h-16 shadow-lg">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <Clover size={18} className="text-slate-950" />
+            <div className="w-9 h-9 rounded-xl bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+                <Clover size={20} className="text-slate-950" />
             </div>
-            <h1 className="text-base font-black brand-font leading-none">Sorte<span className="gold-text">Max</span></h1>
+            <h1 className="text-lg font-black brand-font leading-none">Sorte<span className="gold-text">Max</span></h1>
           </div>
           
-          <div className="flex items-center gap-2">
-              <div onClick={() => setScreen(AppScreen.STORE)} className="bg-slate-950/50 border border-white/10 rounded-full px-2.5 py-1 flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform">
-                  <Coins size={12} className="text-yellow-500" />
-                  <span className="text-[10px] font-bold">∞</span>
+          <div className="flex items-center gap-1.5 sm:gap-3">
+              <div onClick={() => setScreen(AppScreen.STORE)} className="bg-slate-950/60 border border-white/10 rounded-full px-3 py-1.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-transform">
+                  <Coins size={14} className="text-yellow-500" />
+                  <span className="text-xs font-black">∞</span>
               </div>
               
-              <button onClick={() => setScreen(AppScreen.REFERRAL)} className="text-yellow-500 p-2 active:scale-90 transition-transform">
-                <Gift size={18}/>
+              <button onClick={() => setScreen(AppScreen.REFERRAL)} className="text-yellow-500 p-2 hover:bg-white/5 rounded-full transition-colors active:scale-90">
+                <Gift size={20}/>
               </button>
               
               {isAdmin() && (
-                  <button onClick={() => setScreen(AppScreen.ADMIN)} className="text-fuchsia-500 animate-pulse p-2 active:scale-90 transition-transform">
-                    <LayoutGrid size={18}/>
+                  <button onClick={() => setScreen(AppScreen.ADMIN)} className="text-fuchsia-500 animate-pulse p-2 hover:bg-white/5 rounded-full transition-colors active:scale-90">
+                    <LayoutGrid size={20}/>
                   </button>
               )}
 
+              {/* BOTÃO SAIR: Correção definitiva com onClick e z-index alto */}
               <button 
                 type="button"
-                onPointerDown={(e) => { e.stopPropagation(); setShowLogoutConfirm(true); }}
-                className="flex items-center gap-1 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 active:bg-red-500/30 transition-all ml-1 px-3 py-1.5 rounded-xl group cursor-pointer"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowLogoutConfirm(true);
+                }} 
+                className="relative z-50 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 active:bg-red-500/30 transition-all px-3 py-2 rounded-xl group cursor-pointer ml-1"
+                title="Sair do Aplicativo"
               >
-                <LogOut size={16} className="pointer-events-none" />
-                <span className="text-[10px] font-black uppercase tracking-tighter pointer-events-none">Sair</span>
+                <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform pointer-events-none" />
+                <span className="text-[10px] font-black uppercase tracking-widest pointer-events-none hidden sm:inline">Sair</span>
               </button>
           </div>
       </header>
@@ -266,7 +275,7 @@ function App() {
                 {/* Boas vindas personalizado */}
                 <div className="px-2">
                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Olá, {currentUser?.name || 'Vencedor'}</p>
-                    <h2 className="text-2xl font-black mt-1">Pronto para a <span className="gold-text">Sorte?</span></h2>
+                    <h2 className="text-2xl font-black mt-1">Sua vez de <span className="gold-text">Ganhar!</span></h2>
                 </div>
 
                 {/* Banner Principal */}
@@ -433,6 +442,7 @@ function App() {
                             <Sparkles size={12} className="inline mr-1 mb-1"/> 
                             A IA cruzará os dados de <b>{prefs.name}</b> com os ciclos estatísticos da <b>{GAMES[selectedGame].name}</b> para criar sua combinação única.
                         </p>
+                        <p className="text-[8px] text-slate-500 text-center mt-2 uppercase font-bold tracking-widest">Procedimentos salvos automaticamente</p>
                     </div>
 
                     <button 
@@ -454,6 +464,7 @@ function App() {
         {screen === AppScreen.STATS && <StatsPanel setScreen={setScreen} game={selectedGame} />}
         {screen === AppScreen.REFERRAL && <ReferralScreen setScreen={setScreen} user={currentUser!} />}
         {screen === AppScreen.ADMIN && <AdminPanel onClose={() => setScreen(AppScreen.HOME)} />}
+        {screen === AppScreen.EXPLAINER && <LandingPage setScreen={setScreen} openWhatsApp={() => window.open('https://wa.me/5571982194803', '_blank')} />}
       </main>
 
       {renderBottomNav()}
