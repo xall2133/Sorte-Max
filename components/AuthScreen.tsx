@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Clover, Lock, Mail, User as UserIcon, Phone, ArrowRight, Sparkles, Gift } from 'lucide-react';
+import { Clover, User as UserIcon, ArrowRight, Sparkles, Gift, Loader2, ShieldCheck } from 'lucide-react';
 import { AuthService } from '../services/authService';
 import { User } from '../types';
 
@@ -8,176 +9,151 @@ interface AuthScreenProps {
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    referralCode: ''
-  });
+  const [name, setName] = useState('');
+  const [referralCode, setReferralCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAccess = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      setError('Por favor, digite seu nome para continuar.');
+      return;
+    }
+
+    setIsLoading(true);
     setError('');
 
-    if (isLogin) {
-      const res = await AuthService.login(formData.email, formData.password);
+    try {
+      const res = await AuthService.accessWithName(name, referralCode);
       if (res.success && res.user) {
         onLogin(res.user);
       } else {
-        setError(res.message || 'Erro ao entrar.');
+        setError(res.message || 'Erro ao conectar. Tente novamente.');
+        setIsLoading(false);
       }
-    } else {
-      // Register
-      if (!formData.name || !formData.email || !formData.password || !formData.phone) {
-        setError('Preencha os campos obrigatórios.');
-        return;
-      }
-      const res = await AuthService.register(formData.name, formData.email, formData.phone, formData.password, formData.referralCode);
-      if (res.success) {
-        // Auto login after register
-        const user = await AuthService.getCurrentUser();
-        if (user) onLogin(user);
-      } else {
-        setError(res.message || 'Erro ao criar conta.');
-      }
+    } catch (err) {
+      setError('Erro de conexão com o servidor.');
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 relative overflow-hidden">
       
-      {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-green-900/20 rounded-full blur-[100px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-yellow-900/10 rounded-full blur-[100px]"></div>
+      {/* Luzes de Fundo (Aura) */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150%] h-[150%] pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-500/10 via-transparent to-transparent blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-yellow-500/5 via-transparent to-transparent blur-3xl"></div>
       </div>
 
-      <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative z-10 animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-md text-center space-y-10 relative z-10 animate-in fade-in zoom-in duration-1000">
         
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-yellow-500/20 mb-4 transform rotate-3">
-            <Clover className="text-slate-900 w-10 h-10" />
+        {/* Logo Elevada */}
+        <div className="space-y-6">
+          <div className="relative inline-block group">
+            <div className="absolute inset-0 bg-yellow-500 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
+            <div className="w-24 h-24 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-[2rem] mx-auto flex items-center justify-center shadow-[0_0_50px_rgba(234,179,8,0.4)] transform hover:rotate-12 transition-all duration-500 border border-white/20">
+              <Clover className="text-slate-950 w-14 h-14 drop-shadow-lg" />
+            </div>
           </div>
-          <h1 className="text-3xl font-bold brand-font tracking-tight text-white">
-            Sorte<span className="gold-text">Max</span>
-          </h1>
-          <p className="text-slate-400 text-sm mt-2">Sua sorte começa com inteligência.</p>
+          
+          <div>
+            <h1 className="text-5xl font-black brand-font tracking-tighter text-white">
+              Sorte<span className="gold-text">Max</span>
+            </h1>
+            <p className="text-slate-400 text-sm mt-3 font-medium tracking-wide uppercase opacity-70">
+              Seu portal para a fortuna
+            </p>
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-slate-950 rounded-xl p-1 mb-6 border border-slate-800">
-          <button 
-            onClick={() => { setIsLogin(true); setError(''); }}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isLogin ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            Entrar
-          </button>
-          <button 
-            onClick={() => { setIsLogin(false); setError(''); }}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isLogin ? 'bg-slate-800 text-white shadow' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            Criar Conta
-          </button>
-        </div>
+        {/* Card de Login Minimalista */}
+        <div className="bg-slate-900/40 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
+          
+          <form onSubmit={handleAccess} className="space-y-8">
+            <div className="space-y-3 text-left">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] ml-2">Como deseja ser identificado?</label>
+              <div className="relative group">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-yellow-500 transition-colors">
+                  <UserIcon size={20} />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Seu nome ou apelido"
+                  disabled={isLoading}
+                  className="w-full bg-slate-950/80 border border-white/5 rounded-2xl py-5 pl-14 pr-6 text-white text-lg font-bold focus:border-yellow-500/50 focus:ring-4 focus:ring-yellow-500/5 transition-all outline-none placeholder:text-slate-700 shadow-inner"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
+              </div>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-3.5 text-slate-500 w-5 h-5" />
+            <div className="space-y-3 text-left">
+              <label className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                <Gift size={12} className="text-yellow-500" /> Ganhar bônus? (Opcional)
+              </label>
               <input 
                 type="text" 
-                placeholder="Seu Nome Completo"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors outline-none"
-                value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+                placeholder="CÓDIGO DE INDICAÇÃO"
+                disabled={isLoading}
+                className="w-full bg-slate-950/40 border border-white/5 rounded-2xl py-4 px-6 text-white text-sm focus:border-yellow-500/30 outline-none uppercase tracking-widest placeholder:text-slate-800 transition-all"
+                value={referralCode}
+                onChange={e => setReferralCode(e.target.value)}
               />
             </div>
-          )}
-          
-          <div className="relative">
-            <Mail className="absolute left-3 top-3.5 text-slate-500 w-5 h-5" />
-            <input 
-              type="email" 
-              placeholder="Seu E-mail"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors outline-none"
-              value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
-            />
-          </div>
 
-          {!isLogin && (
-            <div className="relative">
-              <Phone className="absolute left-3 top-3.5 text-slate-500 w-5 h-5" />
-              <input 
-                type="tel" 
-                placeholder="Seu WhatsApp (com DDD)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors outline-none"
-                value={formData.phone}
-                onChange={e => setFormData({...formData, phone: e.target.value})}
-              />
-            </div>
-          )}
+            {error && (
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-xs font-bold animate-bounce flex items-center justify-center gap-2">
+                <XCircle size={14} /> {error}
+              </div>
+            )}
 
-          <div className="relative">
-            <Lock className="absolute left-3 top-3.5 text-slate-500 w-5 h-5" />
-            <input 
-              type="password" 
-              placeholder="Sua Senha"
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors outline-none"
-              value={formData.password}
-              onChange={e => setFormData({...formData, password: e.target.value})}
-            />
-          </div>
+            <button 
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-6 bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-500 bg-[length:200%_auto] hover:bg-right text-slate-950 font-black text-xl rounded-2xl shadow-[0_20px_40px_rgba(234,179,8,0.2)] transition-all transform active:scale-[0.98] flex items-center justify-center gap-3 group disabled:opacity-70 disabled:grayscale"
+            >
+              {isLoading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  <span>CONECTANDO...</span>
+                </div>
+              ) : (
+                <>
+                  ACESSAR SORTE MAX
+                  <ArrowRight size={22} className="group-hover:translate-x-2 transition-transform" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
 
-          {!isLogin && (
-            <div className="relative">
-                <Gift className="absolute left-3 top-3.5 text-yellow-500 w-5 h-5" />
-                <input 
-                    type="text" 
-                    placeholder="Código de Indicação (Opcional)"
-                    className="w-full bg-slate-950 border border-yellow-500/30 rounded-xl py-3 pl-10 pr-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-colors outline-none uppercase"
-                    value={formData.referralCode}
-                    onChange={e => setFormData({...formData, referralCode: e.target.value})}
-                />
-            </div>
-          )}
-
-          {error && (
-            <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-red-200 text-xs text-center">
-              {error}
-            </div>
-          )}
-
-          <button 
-            type="submit"
-            className="w-full py-4 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-slate-900 font-bold text-lg rounded-xl shadow-lg shadow-yellow-900/50 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
-          >
-            {isLogin ? 'Acessar App' : 'Cadastrar e Ganhar 5 Créditos'}
-            <ArrowRight size={20} />
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-           {!isLogin && (
-             <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
-               <Sparkles size={12} className="text-green-500" />
-               Ganhe 5 créditos grátis. Use código para ganhar 10!
-             </p>
-           )}
-           {isLogin && (
-             <p className="text-xs text-slate-500 mt-4">
-               Esqueceu a senha? Contate o suporte no WhatsApp.
-             </p>
-           )}
+        {/* Selos de Segurança */}
+        <div className="pt-4 flex flex-col items-center gap-6">
+           <div className="flex items-center gap-8">
+              <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                <ShieldCheck size={20} className="text-green-500" />
+                <span className="text-[8px] font-bold text-white uppercase tracking-tighter">Dados Seguros</span>
+              </div>
+              <div className="w-px h-8 bg-white/10"></div>
+              <div className="flex flex-col items-center gap-1 opacity-40 hover:opacity-100 transition-opacity">
+                <Sparkles size={20} className="text-yellow-500" />
+                <span className="text-[8px] font-bold text-white uppercase tracking-tighter">IA Preditiva</span>
+              </div>
+           </div>
+           
+           <p className="text-[9px] text-slate-600 uppercase font-bold tracking-[0.4em] animate-pulse">
+             Desenvolvido para Vencedores
+           </p>
         </div>
 
       </div>
-      
-      <p className="text-[10px] text-slate-600 mt-8">SorteMax © 2024 - Todos os direitos reservados</p>
     </div>
   );
 };
+
+const XCircle = ({ size }: { size: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+);

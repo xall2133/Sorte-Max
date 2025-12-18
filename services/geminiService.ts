@@ -1,42 +1,23 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { GameType, UserPreferences } from "../types";
 
-// Safely get API key to prevent crashes in browser environments where 'process' is undefined
-const getApiKey = () => {
-  try {
-    // @ts-ignore
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-        // @ts-ignore
-        return process.env.API_KEY;
-    }
-    // Check for Vite env var
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
-        // @ts-ignore
-        return import.meta.env.VITE_API_KEY;
-    }
-    return '';
-  } catch (e) {
-    return '';
-  }
-};
-
-const apiKey = getApiKey();
-// Only initialize if key exists, otherwise we'll handle gracefully in functions
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// Always initialize instance right before use to ensure latest API key
+const getAi = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const askOracle = async (
   message: string,
   history: {role: 'user' | 'model', content: string}[]
 ): Promise<string> => {
-  if (!ai || !apiKey) {
+  const ai = getAi();
+  
+  if (!process.env.API_KEY) {
     return "O Oráculo está offline no momento (Configuração de API pendente). Por favor, use o gerador matemático padrão.";
   }
 
   try {
     const chat = ai.chats.create({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       config: {
         systemInstruction: `Você é o "Oráculo SorteMax", uma inteligência artificial mística e matemática especializada em loterias brasileiras (Mega-Sena, Quina, etc).
         
@@ -51,6 +32,7 @@ export const askOracle = async (
     });
 
     const response = await chat.sendMessage({ message: message });
+    // Use .text property directly as per guidelines
     return response.text || "Os astros estão nebulosos. Tente novamente.";
 
   } catch (error) {
@@ -64,7 +46,9 @@ export const generateMysticExplanation = async (
   game: GameType,
   prefs?: UserPreferences
 ): Promise<string> => {
-  if (!ai || !apiKey) {
+  const ai = getAi();
+
+  if (!process.env.API_KEY) {
     return "Nota: Configuração de IA não detectada. Estes números foram selecionados baseados puramente em algoritmos de probabilidade estatística avançada.";
   }
 
@@ -88,10 +72,10 @@ export const generateMysticExplanation = async (
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        thinkingConfig: { thinkingBudget: 0 } // Low latency
+        thinkingConfig: { thinkingBudget: 0 } // Low latency reasoning
       }
     });
 
@@ -106,7 +90,9 @@ export const generatePersonalizedNumbers = async (
   game: GameType,
   prefs: UserPreferences
 ): Promise<{ numbers: number[], reason: string }> => {
-    if (!ai || !apiKey) {
+    const ai = getAi();
+    
+    if (!process.env.API_KEY) {
         return {
             numbers: [], 
             reason: ""
@@ -127,20 +113,30 @@ export const generatePersonalizedNumbers = async (
       Palavra: ${prefs.mysticWord || 'N/A'}
 
       Use numerologia baseada no nome e data para escolher os números.
-      
-      Schema JSON:
-      {
-        "numbers": [array de inteiros unicos e ordenados],
-        "reason": "Explicação curta e mística de 1 frase."
-      }
     `;
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
-                responseMimeType: 'application/json'
+                responseMimeType: 'application/json',
+                // Using responseSchema for reliable JSON output as per recommended guidelines
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        numbers: {
+                            type: Type.ARRAY,
+                            items: { type: Type.INTEGER },
+                            description: "The generated lottery numbers."
+                        },
+                        reason: {
+                            type: Type.STRING,
+                            description: "A short mystic explanation for the numbers."
+                        }
+                    },
+                    required: ["numbers", "reason"]
+                }
             }
         });
 
@@ -154,7 +150,7 @@ export const generatePersonalizedNumbers = async (
         };
 
     } catch (e) {
-        console.error(e);
-        return { numbers: [], reason: "" }; // Trigger fallback
+        console.error("Personalized Generation Error", e);
+        return { numbers: [], reason: "" }; // Trigger fallback in UI
     }
 }
