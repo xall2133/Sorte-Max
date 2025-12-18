@@ -58,10 +58,10 @@ function App() {
   const [paymentPlan, setPaymentPlan] = useState<PaymentPlan | null>(null);
   const [currentResult, setCurrentResult] = useState<GeneratedSet | null>(null);
   
-  // Inicializa preferências do localStorage se existirem
+  // Inicializa preferências do localStorage se existirem (Procedimentos Salvos)
   const [prefs, setPrefs] = useState<UserPreferences>(() => {
       try {
-          const saved = localStorage.getItem('sortemax_prefs');
+          const saved = localStorage.getItem('sortemax_procedimentos');
           if (saved) return JSON.parse(saved);
       } catch (e) {}
       return {
@@ -78,10 +78,10 @@ function App() {
 
   // Salvar preferências (procedimentos) sempre que mudarem
   useEffect(() => {
-      localStorage.setItem('sortemax_prefs', JSON.stringify(prefs));
+      localStorage.setItem('sortemax_procedimentos', JSON.stringify(prefs));
   }, [prefs]);
 
-  // Sincronizar nome do usuário com preferências do gerador (prioridade para o nome da conta)
+  // Sincronizar nome do usuário LOGADO com o nome nos PROCEDIMENTOS
   useEffect(() => {
     if (currentUser && currentUser.name && prefs.name !== currentUser.name) {
       setPrefs(prev => ({ ...prev, name: currentUser.name }));
@@ -122,13 +122,12 @@ function App() {
     AuthService.logout();
     setCurrentUser(null);
     setCredits(0);
-    // Limpa preferências ao sair se desejar, ou mantém (aqui mantemos para conveniência do usuário na volta)
     setShowLogoutConfirm(false);
     setScreen(AppScreen.AUTH);
   };
 
   const isPremium = () => {
-      return true; 
+      return true; // Todos são premium nesta versão
   };
 
   const isAdmin = () => {
@@ -136,7 +135,7 @@ function App() {
   };
 
   const decrementCredits = async (amount: number = 1): Promise<boolean> => {
-    return true;
+    return true; // Créditos infinitos na prática
   };
 
   const handleGenerate = async (strategy: StrategyType, isMystic: boolean = false) => {
@@ -208,25 +207,6 @@ function App() {
           if (u) { setCredits(u.credits); setCurrentUser(u); }
       }} />}
       
-      {/* Modal de Logout Robusto */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-xs shadow-2xl space-y-8 text-center">
-             <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto ring-4 ring-red-500/10">
-                <LogOut className="text-red-500" size={32} />
-             </div>
-             <div>
-                <h3 className="text-xl font-black brand-font">Sair do App?</h3>
-                <p className="text-slate-400 text-sm mt-2">Você precisará digitar seu nome novamente para acessar.</p>
-             </div>
-             <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setShowLogoutConfirm(false)} className="py-4 bg-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform">Voltar</button>
-                <button onClick={handleLogout} className="py-4 bg-red-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-900/50 active:scale-95 transition-transform">Sair</button>
-             </div>
-          </div>
-        </div>
-      )}
-
       {/* Header Fixo */}
       <header className="sticky top-0 z-40 bg-slate-900/60 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex justify-between items-center h-16 shadow-lg">
           <div className="flex items-center gap-2">
@@ -252,7 +232,7 @@ function App() {
                   </button>
               )}
 
-              {/* BOTÃO SAIR: Correção definitiva com onClick e z-index alto */}
+              {/* BOTÃO SAIR: Reforçado com onClick simples e z-index alto */}
               <button 
                 type="button"
                 onClick={(e) => {
@@ -263,8 +243,8 @@ function App() {
                 className="relative z-50 flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 active:bg-red-500/30 transition-all px-3 py-2 rounded-xl group cursor-pointer ml-1"
                 title="Sair do Aplicativo"
               >
-                <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform pointer-events-none" />
-                <span className="text-[10px] font-black uppercase tracking-widest pointer-events-none hidden sm:inline">Sair</span>
+                <LogOut size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Sair</span>
               </button>
           </div>
       </header>
@@ -284,7 +264,7 @@ function App() {
                     <div className="relative z-10">
                         <span className="text-[10px] font-black bg-yellow-500 text-slate-950 px-3 py-1 rounded-full uppercase tracking-widest">Sorteio de Hoje</span>
                         <h2 className="text-3xl font-black mt-4 mb-2">{GAMES[selectedGame].name}</h2>
-                        <p className="text-white/60 text-sm mb-8">Baseado em 2.450 concursos analisados.</p>
+                        <p className="text-white/60 text-sm mb-8">Análise de tendências ativada.</p>
                         <button 
                             onClick={() => handleGenerate(StrategyType.SMART)}
                             disabled={isLoading}
@@ -320,69 +300,6 @@ function App() {
                     <ActionCard onClick={() => setScreen(AppScreen.HISTORY)} icon={<History className="text-slate-400" />} title="Histórico" desc="Seus jogos" />
                     <ActionCard onClick={() => setScreen(AppScreen.EXPLAINER)} icon={<Info className="text-yellow-400" />} title="Como funciona" desc="Guia SorteMax" />
                 </div>
-            </div>
-        )}
-
-        {screen === AppScreen.GENERATOR && (
-            <div className="animate-in zoom-in-95 duration-300 space-y-8 pt-6">
-                {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-20 space-y-6">
-                        <div className="relative">
-                            <div className="w-20 h-20 border-4 border-slate-800 rounded-full"></div>
-                            <div className="absolute top-0 left-0 w-20 h-20 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                        <p className="text-yellow-500 font-bold animate-pulse uppercase tracking-[0.2em] text-xs text-center">
-                            Consultando o Oráculo...<br/><span className="text-slate-500 text-[10px] mt-1 block">A sorte está sendo tecida</span>
-                        </p>
-                    </div>
-                ) : currentResult && (
-                    <div className="space-y-10">
-                        <div className="text-center">
-                            <h2 className="text-3xl font-black">{GAMES[selectedGame].name}</h2>
-                            <p className="text-yellow-500 text-xs font-bold uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
-                                <Sparkles size={14} /> Combinação de Sorte
-                            </p>
-                        </div>
-
-                        <div className="flex flex-wrap justify-center gap-4">
-                            {currentResult.numbers.map((n, i) => <NumberBall key={i} num={n} delay={i * 100} />)}
-                        </div>
-                        
-                        {currentResult.extras && (
-                            <div className="flex flex-col items-center gap-3 border-t border-white/5 pt-8">
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{GAMES[selectedGame].extraName}</span>
-                                <div className="flex justify-center gap-4">
-                                    {currentResult.extras.map((n, i) => (
-                                        <div key={i} className="w-12 h-12 rounded-full border-2 border-yellow-500 bg-yellow-500/10 flex items-center justify-center font-bold text-yellow-500 text-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-                                            {n}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="bg-slate-900/80 p-6 rounded-3xl border border-white/5 relative overflow-hidden">
-                            <div className="absolute -top-4 -right-4 text-white/5 rotate-12"><Bot size={80}/></div>
-                            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 relative z-10">Análise do Oráculo</h4>
-                            <p className="text-sm text-slate-300 leading-relaxed italic relative z-10">"{currentResult.explanation}"</p>
-                        </div>
-                        
-                        <div className="flex gap-4">
-                            <button 
-                                onClick={() => setScreen(AppScreen.HOME)} 
-                                className="flex-1 py-5 bg-slate-900 border border-white/10 text-white font-bold rounded-2xl active:scale-95 transition-transform"
-                            >
-                                VOLTAR
-                            </button>
-                            <button 
-                                onClick={() => handleGenerate(currentResult.strategy, currentResult.strategy === StrategyType.PERSONAL_MYSTIC)} 
-                                className="flex-[2] py-5 bg-yellow-500 text-slate-950 font-black rounded-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2"
-                            >
-                                <Dices size={20}/> NOVO JOGO
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
         )}
 
@@ -457,6 +374,7 @@ function App() {
         )}
 
         {/* Telas Secundárias */}
+        {screen === AppScreen.GENERATOR && renderGenerator()}
         {screen === AppScreen.BOLAO && <BolaoScreen setScreen={setScreen} user={currentUser!} isPremium={isPremium()} onOpenPremium={() => setIsPremiumModalOpen(true)} />}
         {screen === AppScreen.AI_AGENT && <AiAgentScreen setScreen={setScreen} isPremium={isPremium()} credits={credits} deductCredit={decrementCredits} openPremium={() => setIsPremiumModalOpen(true)} />}
         {screen === AppScreen.STORE && <StoreScreen setScreen={setScreen} onSelectPlan={setPaymentPlan} />}
@@ -466,6 +384,25 @@ function App() {
         {screen === AppScreen.ADMIN && <AdminPanel onClose={() => setScreen(AppScreen.HOME)} />}
         {screen === AppScreen.EXPLAINER && <LandingPage setScreen={setScreen} openWhatsApp={() => window.open('https://wa.me/5571982194803', '_blank')} />}
       </main>
+
+      {/* Modal de Logout Robusto (Fora do Header/Main) */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/95 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-white/10 p-8 rounded-[2.5rem] w-full max-w-xs shadow-2xl space-y-8 text-center">
+             <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto ring-4 ring-red-500/10">
+                <LogOut className="text-red-500" size={32} />
+             </div>
+             <div>
+                <h3 className="text-xl font-black brand-font">Sair do App?</h3>
+                <p className="text-slate-400 text-sm mt-2">Você precisará digitar seu nome novamente para acessar.</p>
+             </div>
+             <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setShowLogoutConfirm(false)} className="py-4 bg-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition-transform">Voltar</button>
+                <button onClick={handleLogout} className="py-4 bg-red-600 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-900/50 active:scale-95 transition-transform">Sair</button>
+             </div>
+          </div>
+        </div>
+      )}
 
       {renderBottomNav()}
     </div>
@@ -478,6 +415,71 @@ function App() {
             <h4 className="font-bold text-white text-sm">{title}</h4>
             <p className="text-[10px] text-slate-500 mt-1 uppercase font-bold tracking-tighter">{desc}</p>
         </button>
+    );
+  }
+
+  function renderGenerator() {
+    return (
+      <div className="animate-in zoom-in-95 duration-300 space-y-8 pt-6">
+          {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                  <div className="relative">
+                      <div className="w-20 h-20 border-4 border-slate-800 rounded-full"></div>
+                      <div className="absolute top-0 left-0 w-20 h-20 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <p className="text-yellow-500 font-bold animate-pulse uppercase tracking-[0.2em] text-xs text-center">
+                      Consultando o Oráculo...<br/><span className="text-slate-500 text-[10px] mt-1 block">A sorte está sendo tecida</span>
+                  </p>
+              </div>
+          ) : currentResult && (
+              <div className="space-y-10">
+                  <div className="text-center">
+                      <h2 className="text-3xl font-black">{GAMES[selectedGame].name}</h2>
+                      <p className="text-yellow-500 text-xs font-bold uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
+                          <Sparkles size={14} /> Combinação de Sorte
+                      </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-4">
+                      {currentResult.numbers.map((n, i) => <NumberBall key={i} num={n} delay={i * 100} />)}
+                  </div>
+                  
+                  {currentResult.extras && (
+                      <div className="flex flex-col items-center gap-3 border-t border-white/5 pt-8">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{GAMES[selectedGame].extraName}</span>
+                          <div className="flex justify-center gap-4">
+                              {currentResult.extras.map((n, i) => (
+                                  <div key={i} className="w-12 h-12 rounded-full border-2 border-yellow-500 bg-yellow-500/10 flex items-center justify-center font-bold text-yellow-500 text-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                                      {n}
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+
+                  <div className="bg-slate-900/80 p-6 rounded-3xl border border-white/5 relative overflow-hidden">
+                      <div className="absolute -top-4 -right-4 text-white/5 rotate-12"><Bot size={80}/></div>
+                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 relative z-10">Análise do Oráculo</h4>
+                      <p className="text-sm text-slate-300 leading-relaxed italic relative z-10">"{currentResult.explanation}"</p>
+                  </div>
+                  
+                  <div className="flex gap-4">
+                      <button 
+                          onClick={() => setScreen(AppScreen.HOME)} 
+                          className="flex-1 py-5 bg-slate-900 border border-white/10 text-white font-bold rounded-2xl active:scale-95 transition-transform"
+                      >
+                          VOLTAR
+                      </button>
+                      <button 
+                          onClick={() => handleGenerate(currentResult.strategy, currentResult.strategy === StrategyType.PERSONAL_MYSTIC)} 
+                          className="flex-[2] py-5 bg-yellow-500 text-slate-950 font-black rounded-2xl shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-2"
+                      >
+                          <Dices size={20}/> NOVO JOGO
+                      </button>
+                  </div>
+              </div>
+          )}
+      </div>
     );
   }
 
